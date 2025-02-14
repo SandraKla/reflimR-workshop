@@ -1,0 +1,547 @@
+---
+title: "Basics of calculating and verifying Reference Intervals with *reflimR*"
+date: "2025-02-14"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+---
+
+# 1. Content
+
+This Microcredit course focuses on the basic concepts of the calculation and verification of Reference Intervals, which are crucial for the interpretation of medical data. The course introduces the use of the R package *reflimR* and its accompanying Shiny Application, *reflimR_shiny*. 
+
+This course provides learners with both a theoretical foundation and practical skills to effectively analyze and interpret Reference Intervals. Although this course focuses solely on the statistical aspects, a solid understanding of medical knowledge is essential for final adjustments and precise interpretation of medical datasets.
+
+## 1.1. Prerequisites
+
+Participants must have the latest version of R (version 4.3.2 or newer) installed on their computer. R can be downloaded for free from the official website: <https://cran.r-project.org>.
+
+Additionally, participants should be able to download and install R packages. Detailed instructions for installing the *reflimR* package will be provided during the course. Basic knowledge of R would be helpful for working effectively.
+
+## 1.2. Learning Objectives
+
+Upon completion of this Microcredit course, participants will have a thorough understanding of how to use the R package *reflimR* for the calculation and verification of Reference Intervals. Specifically, learners will acquire the skills to install and work with the *reflimR* package and its corresponding Shiny Application, *reflimR_shiny*. The course provides step-by-step guidance on installing these tools and effectively running the Shiny Application.
+
+A central focus of the course is on mastering the calculation and verification of Reference Intervals - essential their used statistical methods. Participants will explore theoretical concepts as well as practical workflows with *reflimR*. Using the Shiny Application, participants will interact with user-friendly visualizations and interfaces for the process of Reference Interval analysis.
+
+## 1.3. Keywords
+
+R programming, *reflimR*, *reflimR_shiny*, Reference Intervals, medical informatics, statistics, healthcare data analysis, laboratory data
+
+# 2. Reference Intervals
+
+Reference Intervals (RI) are the 95% range of a laboratory value of a healthy reference population measured [1, 10]. Medical laboratories are required to verify the Reference Intervals, which they have adopted from product sheets or other external sources [1]. These Reference Intervals are crucial in diagnostic medicine as they provide a benchmark for interpreting laboratory test results [2]. By comparing patient test results to these Reference Intervals, healthcare providers can determine whether the values fall within a typical range seen in a healthy population [3]. This comparison helps to identify abnormalities or potential health problems, which can aid in the diagnosis and management of medical conditions [3].
+
+In conventional approaches, Reference Intervals are determined using direct methods, which involve collecting laboratory results from a minimum of 120 apparently healthy individuals and calculating the 2.5th and 97.5th percentiles [11]. Direct methods require time-consuming recruitment processes to account for age and sex distributions, making it particularly difficult to recruit samples for infrequently investigated laboratory analytes [11]. In addition, the definition of 'apparently healthy' according to medical criteria is rather vague. Other challenges include differences between populations, limited data, inter-laboratory variability and age-related changes in values [4].
+
+The main difference between direct and indirect methods lies in the selection of reference individuals. Direct methods select reference individuals, whereas indirect models rely on mixed populations [11]. Indirect methods do not require a definition of 'healthy' as do direct methods [11]. Indirect methods are characterized by lower costs [11]. However, they require a good understanding of statistical analysis.
+
+# 3. Statistical Concepts
+
+## 3.1. Normal Distribution
+
+The **Normal Distribution** (also known as the Gaussian distribution) is one of the most widely used probability distributions in statistics [6]. It is represented by the characteristic bell curve and is defined by two parameters:
+
+-   **Mean (µ)**: The value around which the distribution is centered.
+
+-   **Standard deviation (σ)**: A measure of how spread out the values are around the mean.
+
+Some important properties of the Normal Distribution include:
+
+-   **Symmetry**: The distribution is identical on both sides of the mean.
+
+-   **68-95-99.7 Rule**: Approximately 68% of the data lies within one standard deviation of the mean, 95% within two standard deviations, and 99.7% within three standard deviations.
+
+-   **Asymptotic**: The distribution never truly reaches zero; it asymptotically approaches the x-axis.
+
+The probability density function of the Normal distribution for a value $x$ is given by 
+$$
+f(x) = \frac{1}{\sigma \sqrt{2 \pi}} e^{-\frac{(x - \mu)^2}{2 \sigma^2}}
+$$ 
+
+where µ is the mean and σ is the standard deviation [6].
+
+To model and visualize a Normal Distribution in R, we can use the function `rnorm()`. Here’s an example of generating and visualizing a Normal distribution from 100,000 random values with a µ of 0 and a σ of 1:
+
+```{r echo = FALSE}
+# Set the mean (µ) and standard deviation (σ) for the standard Normal distribution
+mu <- 0       # Mean (center of the distribution)
+sigma <- 1    # Standard deviation (spread of the distribution)
+
+# Set a seed to ensure reproducibility of the random data generation
+set.seed(1)
+
+# Generate 100,000 random values from a Normal distribution
+# The Normal distribution is defined by the mean (mu) and standard deviation (sigma)
+random_data <- rnorm(100000, mean = mu, sd = sigma)
+
+# Create a histogram to visualize the random data
+hist(random_data, 
+     probability = TRUE,         # Scale the histogram to show density instead of counts
+     main = "Normal Distribution (µ = 0, σ = 1)", # Title of the histogram
+     xlab = "Values",            # Label for the x-axis
+     ylab = "Density",           # Label for the y-axis
+     col = "lightblue",          # Fill color for the histogram bars
+     border = "black")           # Border color for the histogram bars
+
+# Overlay the theoretical density curve for the standard Normal distribution
+curve(dnorm(x, mean = mu, sd = sigma), 
+      add = TRUE,                # Add the curve to the existing plot
+      col = "red",               # Set the color of the curve
+      lwd = 2)                   # Set the line width of the curve
+```
+
+The histogram (in light blue) represents the distribution of the generated data. The red curve represents the theoretical density function of the Normal distribution.
+
+## 3.2. Lognormal Distribution
+
+The **Lognormal Distribution** is a probability distribution of a random variable whose logarithm is normally distributed [6,7]. In other words, if a random variable $x$ follows a Normal distribution, then $Y = \exp(x)$ follows a Lognormal Distribution. The Lognormal Distribution is commonly used to model phenomena where the data cannot be negative and exhibits a skewed distribution, like many laboratory values.
+
+The Lognormal distribution is defined by two parameters:
+
+-   **Mean (µ)**: The mean of the underlying Normal distribution.
+
+-   **Standard deviation (σ)**: The standard deviation of the underlying Normal distribution.
+
+The probability density function (PDF) of the Lognormal distribution is
+$$
+f(x) = \frac{1}{x \sigma \sqrt{2 \pi}} e^{-\frac{(\ln(x) - \mu)^2}{2 \sigma^2}}
+$$ 
+
+where µ is the mean of the natural logarithm of the variable and σ is the standard deviation of the natural logarithm of the variable.
+
+To model and visualize a Lognormal Distribution in R, we can use the `rlnorm()` function. Here is an example of generating and visualizing a Lognormal Distribution from 100,000 random values with parameters µ = 1 and σ = 1:
+
+```{r echo = FALSE}
+# Set the mean (mu) and standard deviation (sigma) for the underlying Normal distribution
+# These parameters define the Lognormal distribution
+mu <- 1      # Mean of the logarithm of the data
+sigma <- 1    # Standard deviation of the logarithm of the data
+
+# Set a seed to ensure reproducibility of the random number generation
+set.seed(1)
+
+# Generate 100,000 random values from a Lognormal distribution
+# The Lognormal distribution is derived from the exponentiation of a Normal distribution
+random_data_lognormal <- rlnorm(100000, meanlog = mu, sdlog = sigma)
+
+# Create a histogram to visualize the distribution of the generated data
+hist(random_data_lognormal, 
+     probability = TRUE,         # Scale the histogram to show density instead of counts
+     main = "Lognormal Distribution (µ = 1, σ = 1)", # Title of the histogram
+     xlab = "Values",            # Label for the x-axis
+     ylab = "Density",           # Label for the y-axis
+     col = "lightblue",         # Fill color for the histogram bars
+     ylim = c(0, 0.16),
+     border = "black")           # Border color for the histogram bars
+
+# Overlay the theoretical density curve of the Lognormal distribution
+# The density function is dlnorm(), which calculates the lognormal probability density
+curve(dlnorm(x, meanlog = mu, sdlog = sigma), 
+      add = TRUE,                # Add the curve to the existing plot
+      col = "red",               # Set the color of the curve
+      lwd = 2)                   # Set the line width of the curve
+```
+
+The histogram (in light blue) represents the distribution of the generated data. The red curve represents the theoretical density function of the Lognormal distribution.
+
+## 3.3. *zlog* standardization
+
+Standardization is widely used in areas like manufacturing, technology, healthcare, and education to ensure uniformity, quality, safety, and easier evaluation and comparison. The implementation of *zlog* values in laboratory reports can significantly improve data quality and patient safety by providing a standardized, easily interpretable format for laboratory results across different methods and units [9]. 
+The *zlog* value is derived from the z-transformation, a statistical method that evaluates how many standard deviations a given result deviates from the mean of a Reference population [9]. The *zlog* value is calculated using the lower and upper Reference limits (LL and UL) of a given analyte *x* [9]. This is the formula:
+
+$$
+zlog(x) = (log(x)-\frac{log(LL)+log(UL)}{2})*\frac{3.92}{log(UL)-log(LL)}
+$$
+
+The Reference Interval for *zlog* values is always between -1.96 and +1.96, covering about 95% of the results in a healthy population [9], while values below –5 and above 5 indicate pathological conditions. The higher or lower the *zlog* value, the further the result is from the reference interval. This standardization facilitates the intuitive presentation of data, which can be further enhanced by transforming *zlog* values into a continuous color scale [9].
+
+# 4. *reflimR*
+
+## 4.1. Installation
+
+To install the *reflimR* package, open R and enter the following command in the R-console:
+
+``` bash
+install.packages("reflimR")
+```
+
+This will download the package from [CRAN](https://cran.r-project.org/). Once the installation is complete, load the package into your R environment using the following command:
+
+```{r}
+library(reflimR)
+```
+
+The package is now ready for use in your R environment. To see the documentation of the package with all its help files and more use the following command:
+
+``` bash
+help(package = reflimR)
+```
+
+## 4.2. Dataset
+
+The *reflimR* package includes the dataset [*livertests*](https://archive.ics.uci.edu/ml/datasets/HCV+data), which has been utilized for estimating Reference Intervals using both direct and indirect methods. This dataset contains measurements of eight laboratory analytes, recorded in both healthy controls and patients with liver diseases:
+
+```{r}
+head(livertests)
+```
+
+Furthermore, the associated Reference Intervals are provided in the *targetvalues* dataset. This reference interval table is based on information obtained partly from the electronic handbook [Clinical Laboratory Diagnostics](https://www.clinical-laboratory-diagnostics.com) by L. Thomas and partly from the manufacturer's documentation:
+
+```{r}
+targetvalues
+```
+
+## 4.3. Calculation of Reference Intervals
+
+The following histograms represent the distribution of the laboratory value albumin in male patients. The main issue is to identify and remove the pathological values, leaving only the healthy ones, which will then be used as the basis for calculating the Reference Intervals.
+
+```{r echo=FALSE}
+data.albumin.m <- subset(livertests$ALB, livertests$Sex == "m") # Data from albumin for male
+data.albumin.f <- subset(livertests$ALB, livertests$Sex == "f") # Data from albumin for male
+
+hist(data.albumin.m, breaks = 30,
+     main = "Histogram of Albumin for male patients", 
+     xlab = "g/L", ylab = "Frequency", col = "lightblue")
+```
+
+The simple and robust algorithm in *reflimR* identifies the “presumably normal individuals” even in a mixed population of healthy and sick persons and calculates the 2.5th and 97.5th percentiles for this subpopulation. The *reflimR* method falls into the category of so-called “modified Hoffmann approaches” [4]. The method has three steps with are all used by the main function `reflim()`[4].
+
+Please note that any filtering and cleaning (e. g. for removal of non-numeric values or duplicate results of a single individual) or partitioning of the data (for sex, age, etc.) is not included in the *reflimR* package and must be done in advance.
+
+### 4.3.1. Step 1: Bowley's skewness coefficient
+
+Many laboratory results follow a roughly symmetric distribution, which can be modeled by a Gaussian distribution [8]. However, most are right-skewed and better approximated by a Lognormal distribution [8]. The skewness of a distribution can be visualized with a boxplot by John W. Tukey, where the "box" covers the central 50% of values, from the 25th to the 75th percentile, with a bold line at the median [8]. These percentiles are called quartiles (Q1, Q2, Q3), and the range from Q1 to Q3 is the interquartile range (IQR).
+
+The upper boxplot shows a normally distributed dataset, the lower one a lognormally distributed dataset. Let's take a closer look at the two halves of the boxes. Their proportions reflect the symmetry of the Normal Distribution (upper plot) and the asymmetry of the Lognormal Distribution (lower plot):
+
+```{r echo = FALSE}
+# Generate data for a Normal distribution
+# Create 999 evenly spaced probabilities between 0.001 and 0.999
+# Mean = 100, Standard Deviation = 10
+x.normal <- qnorm(seq(0.001, 0.999, by = 0.001), mean = 100, sd = 10) 
+
+# Generate data for a Lognormal distribution
+# Log-mean = 4, Log-standard deviation = 0.4
+x.lognormal <- qlnorm(seq(0.001, 0.999, by = 0.001), meanlog = 4, sdlog = 0.4) 
+
+# Combine the two datasets into a single matrix for comparison
+x <- cbind(x.lognormal, x.normal)
+
+# Create a horizontal boxplot to visualize the distributions
+boxplot(x, horizontal = TRUE, 
+        names = c("Lognormal", "Normal"), # Add labels for the boxplots
+        col = c("lightpink", "lightblue")) # Use colors for differentiation
+
+# Add annotations for quantiles of the Normal distribution
+# Q2 = Median (50th percentile)
+text(quantile(x.normal, 0.5), 2.5, "Q2", col = "blue") 
+# Q1 = 25th percentile, Q3 = 75th percentile
+text(quantile(x.normal, c(0.25, 0.75)), 1.5, c("Q1", "Q3"), col = "blue")
+
+# Add annotations for quantiles of the Lognormal distribution
+text(quantile(x.lognormal, 0.5), 1.5, "Q2", col = "red")
+text(quantile(x.lognormal, c(0.25, 0.75)), 0.5, c("Q1", "Q3"), col = "red")
+```
+
+The Bowley's skewness coefficient (*BS*) quantifies if the distribution is approximately normal by comparing the widths of the left half (Q2 - Q1) and the right half (Q3 - Q2):
+
+$$
+BS = \frac{(Q3-Q2)-(Q2-Q1)}{Q3-Q1} = \frac{Q1-2*Q2+Q3}{Q3-Q1}
+$$ 
+
+If *BS* is close to 0, the distribution is approximately normal distributed. A clearly positive *BS* suggests a Lognormal Distribution. The function `bowley()` from the *reflimR* package can also be called directly:
+
+```{r}
+dataset.normal <- rnorm(1000, 3, 0.2)
+bowley(dataset.normal)
+dataset.lognormal <- rlnorm(1000, 3, 0.2)
+bowley(dataset.lognormal)
+```
+
+If the shape of the curve becomes more symmetric after log-transformation of the data, the `lognorm()` function indicates that the distribution can be better approximated by a lognormal model.
+
+Here is an example of a symmetric distribution from the albumin data using the `lognorm()` function:
+
+```{r}
+lognorm(data.albumin.m, main = "Albumin", xlab = "g/L")
+```
+
+In contrast, alanine aminotransferase is an example for an asymmetric distribution:
+
+```{r}
+lognorm(livertests$ALT, main = "Alanine Aminotransferase", xlab = "µmol/L")
+```
+
+Here, the original distribution curve (black) is clearly right-skewed with a skewness coefficient of 0.207, and becomes more symmetrical after logarithmization of the data (blue). The delta of the skewness coefficients is 0.171 and thus above the threshold of 0.05.
+
+If a Lognormal distribution is recommended in this step, the values are logarithmized by the *reflim()* function so that the Normal Distribution assumption can be used in the next two steps.
+
+### 4.3.2. Step 2: `iboxplot()` algorithm
+
+Once the distribution type has been defined and a log transformation applied if necessary, the next step is to filter out as much pathological "contamination" as possible, while preserving the integrity of the "normal" data. The approach is inspired by Tukey's boxplot, but instead of focusing on the box itself, the whiskers are analyzed. Points outside the whiskers indicate potential outliers.
+
+In a standard boxplot, the whisker length is calculated as 1.5 times the interquartile range (Q3 - Q1). However, in the modified approach, the two halves of the interquartile range are calculated separately (Q2 - Q1 and Q3 - Q2), and the smaller of the two is selected, assuming it is less influenced by potential outliers. This value is then multiplied by a "quantile factor" to determine the distance of the truncation points on both sides of the median. The quantile factor ensures that the truncation points lie within the interval between the 2.5% and 97.5% quantiles of a Normal Distribution. This factor is derived from the ratio `qnorm(0.025)/qnorm(0.25)`.
+
+Starting with the central 50 percent of the data (i.e., the first and third quartiles), the theoretical 2.5th and 97.5th percentiles of a Gaussian distribution are calculated, and values beyond these limits are removed. This algorithm is repeated until the length of the vector remains constant, meaning no more values are removed.
+
+### 4.3.3. Step 3: Quantile-quantile plot
+
+A Quantile-quantile plot (shortly called QQ-plot) compares two sequences of quantiles. If the respective scatter plot forms an approximately straight line, both datasets can be assumed to have about the same distribution.
+
+R provides a function called `qqnorm()` that compares any distribution with a standard Normal Distribution:
+
+```{r echo=FALSE}
+# Generate data for a Normal distribution
+# Create 999 evenly spaced probabilities between 0.001 and 0.999
+# Mean = 100, Standard Deviation = 10
+x.normal <- qnorm(seq(0.001, 0.999, by = 0.001), mean = 100, sd = 10) 
+
+# Generate data for a Lognormal distribution
+# Log-mean = 4, Log-standard deviation = 0.4
+x.lognormal <- qlnorm(seq(0.001, 0.999, by = 0.001), meanlog = 4, sdlog = 0.4)
+
+# Create a QQ plot for the normal mixture
+qqnorm(x.normal, main = "QQ-Plot of the Normal Distribution")
+
+# Create a QQ plot for the log-normal mixture
+qqnorm(x.lognormal, main = "QQ-Plot of the Lognormal Distribution")
+```
+
+The straight line in the upper figure shows that the dataset is normally distributed, and the curved line below that the dataset is not normally distributed.
+
+In the third and final step of `reflim()`, a normal QQ-plot is generated with a key modification. In *reflimR*, the `truncated_qqplot()` function plots the quantiles of the truncated vector against the corresponding quantiles of a standard Normal distribution, truncated between the 2.5th and 97.5th percentiles. A total of 39 quantiles, evenly spaced between probabilities p = 0 and p = 1, are calculated from the truncated sample and plotted against 39 quantiles of a standard Normal distribution with probabilities ranging from p = 0.025 to p = 0.975. The function then calculates the mean and standard deviation from the intercept and slope of the regression line and extrapolates the reference limits.
+
+This is the output of our *reflimR* algorithm for the albumin data in male patients with a refernce interval betwwen 35 and 51.1:
+
+```{r echo = FALSE}
+reflim(data.albumin.m, main = "Albumin [g/L]")
+```
+
+To visualize the entire process at a glance, the *plot.all* argument of the `reflim()` function can be set to *TRUE*, which will display four graphics:
+
+```{r}
+reflim(data.albumin.m, plot.all = TRUE, main = "Albumin [g/L]")
+```
+
+In the top-right corner, you can see the final result with the Reference Intervals, followed by the individual steps.
+
+## 4.4. Verification of Reference Intervals
+
+Additionally, *reflimR* uses an intuitive color scheme (traffic light colors) to indicate how well the estimated Reference Intervals match the predefined laboratory Reference limits. Green means within tolerance, yellow means slightly increased/decreased, and red means markedly increased/decreased.
+
+Here is an example of Albumin results for men (upper plot) and women (lower plot) with different target values and interpretations:
+```{r}
+reflim(data.albumin.m, targets = targetvalues[1, 5 : 6], main = "Albumin [g/L]")$interpretation
+reflim(data.albumin.f, targets = targetvalues[1, 3 : 4], main = "Albumin [g/L]")$interpretation
+```
+# 5. *reflimR_Shiny* {#reflimr_shiny}
+
+## 5.1. Start the Shiny Application
+
+To start the Shiny Application use the function `runGitHub()` from the package [shiny](https://cran.r-project.org/web/packages/shiny/index.html):
+
+``` bash
+if("shiny" %in% rownames(installed.packages())){
+library(shiny)} else{install.packages("shiny")
+library(shiny)}
+runGitHub("reflimR_Shiny", "SandraKla")
+```
+
+Or download the Zip-File from this Shiny Application. Unzip the file and set your working direction to the path of the folder. The package [shiny](https://cran.r-project.org/web/packages/shiny/index.html) (≥1.7.1) must be installed before using the Shiny Application:
+
+``` bash
+# Test if shiny is installed:
+if("shiny" %in% rownames(installed.packages())){
+library(shiny)} else{install.packages("shiny")
+library(shiny)}
+```
+
+And then start the Application with the following code:
+
+``` bash
+runApp("app.R")
+```
+
+The package [reflimR](https://cran.r-project.org/web/packages/reflimR/index.html) (≥1.0.6), [DT](https://cran.r-project.org/web/packages/DT/index.html) (≥0.28) and [shinydashboard](https://cran.r-project.org/web/packages/shinydashboard/index.html) (≥ 0.7.2) are downloaded or imported when starting this Shiny Application. The used R-Version must be ≥ 4.1.2 (2021-11-01).
+
+## 5.2. Dataset
+
+Data from the UC Irvine Machine Learning Repository showing livertests has been preloaded into this Shiny Application (see chapter 4.2.). In addition, the corresponding Reference Intervals are stored in targetvalues (see chapter 4.2.). For new data these columns should be used:
+
+```         
+Category   Name of the category
+Age        Age in years
+Sex        "m" for male and "f" for female
+Value      Column name is the analyte name, values are the laboratory measures
+```
+
+To load new data, the data should be in CSV format with values separated by semicolons (;), and decimal numbers should use a comma (,) as the decimal separator. The first row of the CSV file should contain column headers.
+
+## 5.3. User Guide
+
+On the left, you can use the sidebar to choose the age, parameters and gender. Below in the "Target Values" section, you can load the data from *targetvalues* or enter your own values. In the middle under the "Upload" you can select the laboratory parameter and upload new data:
+
+```{r, echo=FALSE, out.width='100%'}
+working_dir <- getwd()
+new_path <- file.path(working_dir, "Figures", "reflimR_shiny1.png")
+knitr::include_graphics(new_path)
+```
+
+Under the tab "*reflimR*" you will see the corresponding plot and the outputs from `reflim()`. By clicking on "View all plots", all the plots from the different steps can be displayed:
+
+```{r, echo=FALSE, out.width='100%'}
+new_path <- file.path(working_dir, "Figures", "reflimR_shiny2.png")
+knitr::include_graphics(new_path)
+```
+
+When *targetvalues* are given, the display will show the corresponding traffic colors:
+
+```{r, echo=FALSE, out.width='100%'}
+new_path <- file.path(working_dir, "Figures", "reflimR_shiny3.png")
+knitr::include_graphics(new_path)
+```
+
+## 5.4. *zlog* Calculation in *reflimR_Shiny*
+
+Under the *zlog* tab in *reflimR_shiny* you can see the *zlog* values from the different patients in the dataset corresponding to the new calculated reference intervals with the corresponding color scheme for the *zlog* values from Hoffmann et al. (2020). Small *zlog* values are in blue, where between -2 and 2 the values are almost white and get more orangish as the zlog values are higher.
+
+```{r, echo=FALSE, out.width='100%'}
+new_path <- file.path(working_dir, "Figures", "zlog1.png")
+knitr::include_graphics(new_path)
+
+new_path <- file.path(working_dir, "Figures", "zlog2.png")
+knitr::include_graphics(new_path)
+```
+
+# 6. Practice
+
+Here are some exercises for you to independently explore the R package and the Shiny Application, as well as to test your knowledge. Use the pre-integrated datasets available in the R package *reflimR* and the Shiny Application *reflimR_shiny*.
+
+**Exercise 1)** Explain what a Reference Interval is and identify potential challenges in its calculation.
+
+**Exercise 2)** Briefly describe the statistical methods behind *reflimR* and calculate the Reference Intervals for CREA and PROT.
+
+**Exercise 3)** Verify existing Reference Interval values. In your laboratory information system, you already have the following Reference Interval values for CREA and PROT:
+
+```         
+CREA: 40-115 µmol/L
+PROT: 62-80 mg/L
+```
+
+Check whether you need to adjust these Reference Intervals or if they are acceptable as they are.
+
+**Exercise 4)** Use the Shiny Application *reflimR_shiny* to calculate and verify this Reference Intervals.
+
+**Exercise 5)** Calculate the *zlog* values for CREA and PROT with the Shiny Application *reflimR_shiny*. Determine the minimum and maximum *zlog* values. Additionally, calculate the zlog value for a patient with a measurement of 4 and a Reference Interval of 4.5 to 6.
+
+# 7. Summary
+
+This Microcredit provided an introduction to the calculation and verification of Reference Intervals with *reflimR*, emphasizing their importance in medical and diagnostic data interpretation. Participants gained hands-on experience with the *reflimR* R-package and its Shiny Application, *reflimR_shiny*, mastering installation, functionality, and user interaction.
+
+# 8. Appendix
+
+## 8.1. Results
+
+Please try it by yourself and then check the results! If you need more help, please contact the Maintainer of this Microcredit for further assistance!
+
+**Exercise 1)** See chapter 2 and 4.3.
+
+**Exercise 2)** See chapter 4.3.
+
+```{r}
+# Reference Intervals for CREA
+library(reflimR)
+x <- livertests$CREA
+reflim(x)$limits
+```
+
+```{r}
+# Reference Intervals for PROT
+library(reflimR)
+x <- livertests$PROT
+reflim(x)$limits
+```
+
+The Reference Interval for CREA is 52.3-113.5 µmol/L and for PROT 64.4-80.3 mg/L.
+
+**Exercise 3)**
+
+```{r}
+# Verification of the Reference Intervals for CREA
+library(reflimR)
+x <- livertests$CREA
+reflim(x, targets = c(40,115))$interpretation
+```
+
+```{r}
+# Verification of the Reference Intervals for PROT
+library(reflimR)
+x <- livertests$PROT
+reflim(x, targets = c(62,80))$interpretation
+```
+
+**Exercise 4)** See chapter 5.3.
+
+**Exercise 5)** The range of *zlog* values for CREA is -11.46 to 13.35 and for PROT is -8.41 to 3.99. The *zlog* value for the Reference Interval 4.5 - 6 and the value 4 is -3.565.
+
+## 8.2. Web Links
+
+-   CRAN-Link to *reflimR*:
+<https://cran.r-project.org/web/packages/reflimR/>
+
+-   GitHub-Link to *reflimR*: 
+<https://github.com/reflim/reflimR>
+
+-   GitHub-Link to *reflimR_Shiny*:
+<https://github.com/SandraKla/reflimR_Shiny>
+
+-   Link to original dataset:
+<https://archive.ics.uci.edu/dataset/571/hcv+data>
+
+-   Link to *reflimR* dataset:
+<https://github.com/reflim/reflimR/blob/main/data/livertests.rda>
+
+-   Link to *reflimR_Shiny* dataset:
+<https://github.com/SandraKla/reflimR_Shiny/blob/main/www/template.csv>
+
+## 8.3. References
+
+1)  Hoffmann G, Klawitter S, Trulson I, Adler J, Holdenrieder S, Klawonn F. A Novel Tool for the Rapid and Transparent Verification of Reference Intervals in Clinical Laboratories. Journal of Clinical Medicine. 2024; 13(15):4397. <https://doi.org/10.3390/jcm13154397>
+
+2)  Klawitter, S. , Böhm, J. & Tolios, A. & Gebauer, J.. (2024). Automated sex and age partitioning for the estimation of Reference Intervals using a regression tree model. Journal of Laboratory Medicine. 48. 223-237. 10.1515/labmed-2024-0083.
+
+3)  Klawonn F, Hoffmann G, Holdenrieder S, Trulson I. reflimLOD: A Modified reflimR Approach for Estimating Reference Limits with Tolerance for Values Below the Lower Limit of Detection (LOD). Stats. 2024; 7(4):1296-1314. <https://doi.org/10.3390/stats7040075>
+
+4)  Klawitter, S. & Kacprowski, T. (2023). A visualization tool for continuous Reference Intervals based on GAMLSS. Journal of Laboratory Medicine, 47(4), 165-170. <https://doi.org/10.1515/labmed-2023-0033>
+
+5)  Jones, G., Haeckel, R., Loh, T., Sikaris, K., Streichert, T., Katayev, A., Barth, J., Ozarda, Y. & on behalf of the IFCC Committee on Reference Intervals and Decision Limits (2019). Indirect methods for Reference Interval determination – review and recommendations. Clinical Chemistry and Laboratory Medicine (CCLM), 57(1), 20-29. <https://doi.org/10.1515/cclm-2018-0073>
+
+6)  R.A. Rigby, M.D. Stasinopoulos, G.Z. Heller, and F. De Bastiani. Distributions
+for Modeling Location, Scale, and Shape: Using GAMLSS in R. Chapman and
+Hall/CRC the R Series. CRC Press, 2019.
+
+8)  Klawonn, F., Hoffmann, G. & Orth, M. (2020). Quantitative laboratory results: normal or Lognormal distribution?. Journal of Laboratory Medicine, 44(3), 143-150. <https://doi.org/10.1515/labmed-2020-0005>
+
+9)  Hoffmann, G., Klawonn, F., Lichtinghagen, R. & Orth, M. (2017). The *zlog* value as a basis for the standardization of laboratory results. LaboratoriumsMedizin, 41(s1), 20170135. <https://doi.org/10.1515/labmed-2017-0135>
+
+10) Ilcol, Yesim & Sikaris, Kenneth & Streichert, Thomas & Macri, Joseph. (2018). Distinguishing Reference Intervals and clinical decision limits – A review by the IFCC Committee on Reference Intervals and Decision Limits. Critical Reviews in Clinical Laboratory Sciences. 55. 1-12. 10.1080/10408363.2018.1482256.
+
+11) Haeckel, R., Adeli, K., Jones, G., Sikaris, K., & Wosniok, W. (2022). Definitions and major prerequisites of direct and indirect approaches for estimating reference limits. Clinical chemistry and laboratory medicine, 61(3), 402–406. https://doi.org/10.1515/cclm-2022-1061
+
+## 9.4. Further literature
+
+-   Klawitter, S., Klawonn, F. & Hoffmann, G. (2023). ReferenzIntervalle bei Kindern: Wenn Tabellen an ihre Grenzen stoßen. Trillium Diagnostik. 61-63. 10.47184/td.2023.01.11.
+
+-   Hoffmann, G., Allmeier, N., Kuti, M., Holdenrieder, S. & Trulson, I. (2024). How Gaussian mixture modelling can help to verify Reference Intervals from laboratory data with a high proportion of pathological values. Journal of Laboratory Medicine, 48(5), 251-258. <https://doi.org/10.1515/labmed-2024-0118>
+
+-   Hoffmann, G., Lichtinghagen, R. & Wosniok, W. (2016). Simple estimation of Reference Intervals from routine laboratory data. LaboratoriumsMedizin, 39(s1), 000010151520150104. <https://doi.org/10.1515/labmed-2015-0104>
+
+-   Website: <https://reflim.github.io/Epub/>
+
+-   Klawonn, F.; Hoffmann, G. Using fuzzy cluster analysis to find interesting clusters. In Building Bridges between Soft and Statistical Methodologies for Data Science; Garcia-Escudero, L.A., Gordaliza, A., Mayo, A., Lubiano Gomez, M.A., Gil, M.A., Grzegorzewski, P., Hryniewicz, O., Eds.; Springer: Cham, Switzerland, 2023; pp. 231–239
