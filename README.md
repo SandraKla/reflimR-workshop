@@ -1,13 +1,13 @@
 # Course for *reflimR* and *reflimR_Shiny*
 
-This guide will walk you through the steps to download the `.Rmd` file from GitHub and open it in RStudio to follow the course for our R package [*reflimR*](https://cran.r-project.org/web/packages/reflimR/index.html) and the Shiny Application [*reflimR_Shiny*](https://github.com/SandraKla/reflimR_Shiny).
+This guide will walk you through the steps to download the `.Rmd` file from GitHub and open it in RStudio to follow the course for the R package [*reflimR*](https://cran.r-project.org/web/packages/reflimR/index.html) and the Shiny Application [*reflimR_Shiny*](https://github.com/SandraKla/reflimR_Shiny).
 
 ## Step 1: Download the Repository from GitHub
 
 Since the course includes additional files (e.g., images), you need to download the entire repository:
 
 1. **Go to the GitHub repository**
-    - Open your web browser and navigate to the GitHub repository:
+    - Open your web browser and navigate to this GitHub repository
 
 2. **Download the entire repository**
     - On the GitHub repository page, click the **`Code`** button.
